@@ -32,7 +32,7 @@ int registro_inexistente(FILE *arquivo, Cabecalho *cabecalho) {
 
 
 // leitura de campos variaveis no binario
-int le_campos_variaveis_bin(FILE *arquivo, Campos *dados, int opcao){
+int le_campos_variaveis_bin(FILE *arquivo, Campos *dados, int opcao, int *tamRegBytes){
     int leuCampo = 0;
     int contador = 0;
     char c;
@@ -74,15 +74,18 @@ int le_campos_variaveis_bin(FILE *arquivo, Campos *dados, int opcao){
         leuCampo = 1;
     }
 
+    *tamRegBytes = *tamRegBytes + contador;
+
     // retorna se o campo existe ou nao
     return leuCampo;
 }
 
 // chamando funcao de leitura com campos variaveis e fixos
-void le_arquivo_bin(FILE *arquivo, Campos *dados){
+int le_arquivo_bin(FILE *arquivo, Campos *dados){
     char delimitador;
     int leuLugar;
     int leuDescricao;
+    int tamRegBytes = 0;
 
     // leitura de Tamanho fixo
     fread(&dados->removido, sizeof(char), 1, arquivo);
@@ -91,9 +94,11 @@ void le_arquivo_bin(FILE *arquivo, Campos *dados){
     fread(&dados->numeroArtigo, sizeof(int), 1, arquivo);
     fread(&dados->marcaCelular, sizeof(char), 12, arquivo);
 
+    tamRegBytes = tamRegBytes + 31 + 3;
+
     // leitura de campos variaveis
-    leuLugar = le_campos_variaveis_bin(arquivo, dados, 1);
-    leuDescricao = le_campos_variaveis_bin(arquivo, dados, 2);
+    leuLugar = le_campos_variaveis_bin(arquivo, dados, 1, &tamRegBytes);
+    leuDescricao = le_campos_variaveis_bin(arquivo, dados, 2, &tamRegBytes);
     fread(&delimitador, sizeof(char), 1, arquivo);
 
     // casos NULOS
@@ -103,6 +108,8 @@ void le_arquivo_bin(FILE *arquivo, Campos *dados){
     if(leuDescricao == 0) {
         strcpy(dados->descricaoCrime, "NULO");
     }
+
+    return tamRegBytes;
 }
 
 // tratando do caso NULO e dos casos de sobra de bytes

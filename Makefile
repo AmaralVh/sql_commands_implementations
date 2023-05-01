@@ -1,5 +1,5 @@
-all: estrutura.o arquivo_csv.o arquivo_bin.o funcionalidades.o programaTrab.o 
-	gcc estrutura.o arquivo_csv.o arquivo_bin.o funcionalidades.o programaTrab.o -o programaTrab -std=c99 -Wall
+all: estrutura.o arquivo_csv.o arquivo_bin.o arquivo_ind.o funcionalidades.o programaTrab.o 
+	gcc estrutura.o arquivo_csv.o arquivo_bin.o arquivo_ind.o funcionalidades.o programaTrab.o -o programaTrab -std=c99 -Wall
 
 estrutura.o:
 	gcc -c estrutura.c -o estrutura.o
@@ -9,6 +9,9 @@ arquivo_csv.o:
 
 arquivo_bin.o:
 	gcc -c arquivo_bin.c -o arquivo_bin.o
+
+arquivo_ind.o:
+	gcc -c arquivo_ind.c -o arquivo_ind.o
 
 funcionalidades.o:
 	gcc -c funcionalidades.c -o funcionalidades.o

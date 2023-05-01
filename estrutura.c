@@ -62,11 +62,16 @@ void escreve_cabecalho(FILE *arquivo, Cabecalho *cabecalho) {
 
 
 // criando cabecalho
-void cria_cabecalho(FILE *arquivo, Cabecalho *cabecalho) {
+void cria_cabecalho(Cabecalho *cabecalho) {
     cabecalho->status = '0';
     cabecalho->proxByteOffset = 17; // Bytes do cabecalho.
     cabecalho->nroRegArq = 0;
     cabecalho->nroRegRem = 0;
+}
+
+
+void cria_cabecalho_ind(IndexCabecalho *indexCabecalho) {
+    indexCabecalho->status = '0';
 }
 
 
@@ -87,21 +92,30 @@ void atualiza_cabecalho_fechamento(FILE *arquivo, Cabecalho *cabecalho) {
 }
 
 
+void atualiza_cab_ind_fechamento(FILE *arquivo, IndexCabecalho *indexCabecalho) {
+    indexCabecalho->status = '1';
+
+    fseek(arquivo, 0, SEEK_SET);
+
+    fwrite(&indexCabecalho->status, sizeof(char), 1, arquivo);
+}
+
+
 // abrindo arquivo
 FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho) {
     FILE *arquivo;
 
     // fizemos um if para cada tipo, sendo o primeiro para leitura 
-    if (tipo == 1){
+    if (tipo == 1) {
         arquivo = fopen(nome_arquivo, "r");
-    }
-    else if (tipo == 2){ // abertura para escrever no binario
+    } 
+    else if (tipo == 2) { // abertura para escrever no binario
         arquivo = fopen(nome_arquivo, "wb");
-        cria_cabecalho(arquivo, cabecalho);
+        cria_cabecalho(cabecalho);
     }
-    else if (tipo == 3){ // abertura para ler no binario
+    else if (tipo == 3) { // abertura para ler no binario
         arquivo = fopen(nome_arquivo, "rb");
-    }
+    } 
 
     if(arquivo == NULL) {
         erro_processamento();
@@ -133,6 +147,21 @@ int seleciona_tipo(char *tipoDado) {
 }
 
 
+void preenche_cifrao(char *ponteiro) {
+    int tamanhoString = strlen(ponteiro);
+
+    if(tamanhoString < 12) {
+        int i;
+        for (i = tamanhoString; i < 12; i++){
+            ponteiro[i] = '$';
+        }
+        ponteiro[i] = '\0';
+    }
+
+    printf("String na preenche: %s\n", ponteiro);
+}
+
+
 void trunca_chaves(Campos *campos) {
     int tamLugar = strlen(campos->lugarCrime);
     int tamDescricao = strlen(campos->descricaoCrime);
@@ -146,7 +175,8 @@ void trunca_chaves(Campos *campos) {
 
         campos->lugarCrime = (char *) realloc(campos->lugarCrime, 13 * sizeof(char));
         strcpy(campos->lugarCrime, lugTruncado);
-    }
+    } 
+  
 
     if(tamDescricao > 12) {
         char descTruncada[13];
@@ -157,8 +187,8 @@ void trunca_chaves(Campos *campos) {
 
         campos->descricaoCrime = (char *) realloc(campos->descricaoCrime, 13 * sizeof(char));
         strcpy(campos->descricaoCrime, descTruncada);
-    }
-
+     }
+    
 }
 
 
@@ -181,7 +211,7 @@ int compara_data(char *data1, char *data2) {
     strcpy(ano2, strtok(NULL, "/"));
 
     igualdade = atoi(ano1) - atoi(ano2);
-
+    printf(" %s e %s ", ano1, ano2);
     if(igualdade == 0) {
         igualdade = atoi(mes1) - atoi(mes2);
 
@@ -198,19 +228,21 @@ void shift_index(IndexCampos *indexCampos, int i, int quant, int tipo) {
     if(tipo == 0) {
         for(int k = quant - 1; k > i; k--) {
             indexCampos[k].chaveInt = indexCampos[k-1].chaveInt;
+            indexCampos[k].byteOffset = indexCampos[k-1].byteOffset;
         }
     } else if(tipo == 1) {
         for(int k = quant - 1; k > i; k--) {
             strcpy(indexCampos[k].chaveStr, indexCampos[k-1].chaveStr);
+            indexCampos[k].byteOffset = indexCampos[k-1].byteOffset;
         }
     }
 }
 
 
-void insere_index_int(IndexCampos *indexCampos, int *ponteiro, int quant) {
+void insere_index_int(IndexCampos *indexCampos, int *ponteiro, int quant, long long int byteOffset) {
     int i = 0;
 
-    while(i < (quant-1) && *ponteiro > indexCampos[i].chaveInt) {
+    while(i < (quant-1) && *ponteiro >= indexCampos[i].chaveInt) {
         i++;
     }
 
@@ -219,18 +251,19 @@ void insere_index_int(IndexCampos *indexCampos, int *ponteiro, int quant) {
     }
 
     indexCampos[i].chaveInt = *ponteiro;
+    indexCampos[i].byteOffset = byteOffset;
 }
 
 
-void insere_index_str(IndexCampos *indexCampos, char *ponteiro, int quant, int data) {
+void insere_index_str(IndexCampos *indexCampos, char *ponteiro, int quant, int data, long long int byteOffset) {
     int i = 0;
-    
+    printf("TESTE");
     if(data == 0) {
-        while(i < (quant-1) && strcmp(ponteiro, indexCampos[i].chaveStr) > 0) {
+        while(i < (quant-1) && strcmp(ponteiro, indexCampos[i].chaveStr) >= 0) {
             i++;
         }
     } else {
-        while(i < (quant-1) && compara_data(ponteiro, indexCampos[i].chaveStr) > 0) {
+        while(i < (quant-1) && compara_data(ponteiro, indexCampos[i].chaveStr) >= 0) {
             i++;
         }
     }
@@ -238,12 +271,15 @@ void insere_index_str(IndexCampos *indexCampos, char *ponteiro, int quant, int d
     if(i < quant-1) {
         shift_index(indexCampos, i, quant, 1);
     }
-
+    printf("String na insere_index: %s", ponteiro);
     strcpy(indexCampos[i].chaveStr, ponteiro);
+    preenche_cifrao(indexCampos[i].chaveStr);
+    indexCampos[i].byteOffset = byteOffset;
 }
 
 
-void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, int *quant) {
+void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, int *quant, long long int byteOffset) {
+
     if(tipo == 0) {
         int *ponteiro;
 
@@ -257,7 +293,7 @@ void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexa
 
         if(*ponteiro != 0) {
             *quant = *quant + 1;
-            insere_index_int(indexCampos, ponteiro, *quant);
+            insere_index_int(indexCampos, ponteiro, *quant, byteOffset);
         }
     } else if(tipo == 1) {
         trunca_chaves(campos);
@@ -277,10 +313,12 @@ void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexa
         } else {
             erro_processamento();
         }
-
+        printf(" String: %s\n", ponteiro);
         if(strcmp(ponteiro, "NULO") != 0) {
+            printf("Teste1");
             *quant = *quant + 1;
-            insere_index_str(indexCampos, ponteiro, *quant, data);
+            insere_index_str(indexCampos, ponteiro, *quant, data, byteOffset);
         }
     }
+
 }

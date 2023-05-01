@@ -10,11 +10,11 @@ int le_cabecalho_bin(FILE *arquivo, Cabecalho *cabecalho);
 
 int registro_inexistente(FILE *arquivo, Cabecalho *cabecalho);
 
-void le_arquivo_bin(FILE *arquivo, Campos *dados);
+int le_arquivo_bin(FILE *arquivo, Campos *dados);
 
 void trata_dados_bin(Campos *dados);
 
-int le_campos_variaveis_bin(FILE *arquivo, Campos *dados, int opcao);
+int le_campos_variaveis_bin(FILE *arquivo, Campos *dados, int opcao, int *tamRegBytes);
 
 void escreve_arquivo_bin(FILE *arquivo, Campos *dados, Cabecalho *cabecalho);
 

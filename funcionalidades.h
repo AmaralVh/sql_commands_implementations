@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "arquivo_bin.h"
 #include "arquivo_csv.h"
+#include "arquivo_ind.h"
 
 void erro_processamento();
 

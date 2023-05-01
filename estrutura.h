@@ -30,9 +30,6 @@ struct indexCabecalho {
     char status;
 };
 
-
-
-
 // estrutura de campos para o arquivo de indices
 struct indexCampos {
     // union para guardar a chave de busca do arquivo de indices
@@ -63,17 +60,21 @@ Cabecalho *aloca_cabecalho();
 
 IndexCabecalho *aloca_cabecalho_index();
 
+void cria_cabecalho_ind(IndexCabecalho *indexCabecalho);
+
 void aloca_campos_variaveis(Campos *dados);
 
 FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho);
 
 void escreve_cabecalho(FILE *arquivo, Cabecalho *cabecalho);
 
-void cria_cabecalho(FILE *arquivo, Cabecalho *cabecalho);
+void cria_cabecalho(Cabecalho *cabecalho);
 
 void atualiza_cabecalho_escrita(Cabecalho *cabecalho, int deslocamentoOffset);
 
 void atualiza_cabecalho_fechamento(FILE *arquivo, Cabecalho *cabecalho);
+
+void atualiza_cab_ind_fechamento(FILE *arquivo, IndexCabecalho *indexCabecalho);
 
 FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho);
 
@@ -81,7 +82,7 @@ void fecha_arquivo(FILE *arquivo, int tipo, Cabecalho *cabecalho);
 
 int seleciona_tipo(char *tipoDado);
 
-void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, int *quant);
+void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, int *quant, long long int byteOffset);
 
 
 #endif

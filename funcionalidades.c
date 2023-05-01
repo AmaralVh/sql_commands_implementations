@@ -122,31 +122,38 @@ void create_index() {
     int tipo = seleciona_tipo(tipoDado);
 
     int quant = 0;
+    long long int byteOffset = 17;
+    
     if(!registro_inexistente(arquivoBin, cabecalho)) {  
         for(int cont = 0; cont < num_registros_bin(cabecalho); cont++) {
-            le_arquivo_bin(arquivoBin, campos);  
-
+            int tamRegBytes = le_arquivo_bin(arquivoBin, campos);  
+            printf("Data: %s\n", campos->dataCrime);
             trata_dados_bin(campos);
-
+            printf("Data: %s\n", campos->dataCrime);
             if(quant > 0) {
                 indexCampos = (IndexCampos *) realloc(indexCampos, (quant + 1) * sizeof(IndexCampos));
             }
 
-            seleciona_index(indexCampos, campos, campoIndexado, tipo, &quant);
+            printf("Byte offset[%d]: %lld\n", cont, byteOffset);
+
+            seleciona_index(indexCampos, campos, campoIndexado, tipo, &quant, byteOffset);
+
+            byteOffset = byteOffset + tamRegBytes;
         }
     }
 
     indexCabecalho = aloca_cabecalho_index();
 
     for(int i = 0; i < quant; i++) {
-        printf("%s\n", indexCampos[i].chaveStr);
+        printf("%s, %lld\n", indexCampos[i].chaveStr, indexCampos[i].byteOffset);
     }
 
-    printf("total nao nulos: %d", quant);
+    // printf("total nao nulos: %d", quant);
 
-    // cria_arq_index();
+    cria_arq_index(nomeArquivoIndex, indexCampos, indexCabecalho, tipo, quant);
+
+    free(indexCampos);
+    free(indexCabecalho);
+
+    binarioNaTela(nomeArquivoIndex);
 }
-
-
-
-// testeeeeeee
