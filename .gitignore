@@ -7,4 +7,9 @@ funcionalidades.o
 
 arquivo_csv.o
 arquivo_bin.o
+arquivo_ind.o
 
+indiceres.bin
+indice1.bin
+indice2.bin
+indice3.bin

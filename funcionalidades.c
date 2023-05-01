@@ -117,40 +117,45 @@ void create_index() {
     // Abre arquivo binario para leitura (3):
     arquivoBin = abre_arquivo(nomeArquivoBin, 3, cabecalho);
 
+    indexCabecalho = aloca_cabecalho_index();
     indexCampos = aloca_indice();
 
     int tipo = seleciona_tipo(tipoDado);
 
-    int quant = 0;
+    indexCabecalho->quant = 0;
     long long int byteOffset = 17;
     
     if(!registro_inexistente(arquivoBin, cabecalho)) {  
         for(int cont = 0; cont < num_registros_bin(cabecalho); cont++) {
             int tamRegBytes = le_arquivo_bin(arquivoBin, campos);  
-            printf("Data: %s\n", campos->dataCrime);
+            
+            // printf("Data lida: %s, ", campos->dataCrime);
+            // printf("com tamanho de string: %ld.\n", strlen(campos->dataCrime));
+
             trata_dados_bin(campos);
-            printf("Data: %s\n", campos->dataCrime);
-            if(quant > 0) {
-                indexCampos = (IndexCampos *) realloc(indexCampos, (quant + 1) * sizeof(IndexCampos));
+
+            // printf("Data depois de tratada: %s, ", campos->dataCrime);
+            // printf("com tamanho de string: %ld.\n", strlen(campos->dataCrime));
+            
+            if(indexCabecalho->quant > 0) {
+                indexCampos = (IndexCampos *) realloc(indexCampos, (indexCabecalho->quant + 1) * sizeof(IndexCampos));
             }
 
-            printf("Byte offset[%d]: %lld\n", cont, byteOffset);
-
-            seleciona_index(indexCampos, campos, campoIndexado, tipo, &quant, byteOffset);
+            seleciona_index(indexCampos, campos, campoIndexado, tipo, indexCabecalho, byteOffset);
 
             byteOffset = byteOffset + tamRegBytes;
         }
     }
 
-    indexCabecalho = aloca_cabecalho_index();
+    preenche_cifrao(indexCampos, indexCabecalho);
 
-    for(int i = 0; i < quant; i++) {
+    for(int i = 0; i < indexCabecalho->quant; i++) {
         printf("%s, %lld\n", indexCampos[i].chaveStr, indexCampos[i].byteOffset);
     }
 
     // printf("total nao nulos: %d", quant);
 
-    cria_arq_index(nomeArquivoIndex, indexCampos, indexCabecalho, tipo, quant);
+    cria_arq_index(nomeArquivoIndex, indexCampos, indexCabecalho, tipo);
 
     free(indexCampos);
     free(indexCabecalho);

@@ -18,19 +18,19 @@ void fecha_arquivo_ind(FILE *arquivo, IndexCabecalho *indexCabecalho) {
 }
 
 
-void cria_arq_index(char *nomeArquivoIndex, IndexCampos *indexCampos, IndexCabecalho *indexCabecalho, int tipoDado, int quant) {
+void cria_arq_index(char *nomeArquivoIndex, IndexCampos *indexCampos, IndexCabecalho *indexCabecalho, int tipoDado) {
     FILE *arquivo = abre_arquivo_ind(nomeArquivoIndex, indexCabecalho);
 
     // Escreve cabecalho do arquivo de indice:
     fwrite(&indexCabecalho->status, sizeof(char), 1, arquivo);
 
     if(tipoDado == 0) {
-        for(int i = 0; i < quant; i++) {
+        for(int i = 0; i < indexCabecalho->quant; i++) {
             fwrite(&indexCampos[i].chaveInt, sizeof(int), 1, arquivo);
             fwrite(&indexCampos[i].byteOffset, sizeof(long long int), 1, arquivo);
         }
     } else if(tipoDado == 1) {
-        for(int i = 0; i < quant; i++) {
+        for(int i = 0; i < indexCabecalho->quant; i++) {
             fwrite(indexCampos[i].chaveStr, sizeof(char), 12, arquivo);
             fwrite(&indexCampos[i].byteOffset, sizeof(long long int), 1, arquivo);
         }

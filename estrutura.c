@@ -147,18 +147,21 @@ int seleciona_tipo(char *tipoDado) {
 }
 
 
-void preenche_cifrao(char *ponteiro) {
-    int tamanhoString = strlen(ponteiro);
+void preenche_cifrao(IndexCampos *indexCampos, IndexCabecalho *indCab) {   
+    printf("QUANTIDADE: %d\n", indCab->quant);
 
-    if(tamanhoString < 12) {
-        int i;
-        for (i = tamanhoString; i < 12; i++){
-            ponteiro[i] = '$';
+    for(int i = 0; i < indCab->quant; i++) {
+        int tamanhoString = strlen(indexCampos[i].chaveStr);
+        
+        if(tamanhoString < 12) {
+            int j;
+
+            for(j = tamanhoString; j < 12; j++) {
+                indexCampos[i].chaveStr[j] = '$';
+            }
+            indexCampos->chaveStr[j] = '\0';
         }
-        ponteiro[i] = '\0';
     }
-
-    printf("String na preenche: %s\n", ponteiro);
 }
 
 
@@ -201,6 +204,8 @@ int compara_data(char *data1, char *data2) {
     strcpy(d1, data1);
     strcpy(d2, data2);
 
+    // printf("COMP: data1 = %s data2 = %s\n", d1, d2);
+
     int igualdade = 0;
 
     strcpy(dia1, strtok(d1, "/"));
@@ -211,7 +216,7 @@ int compara_data(char *data1, char *data2) {
     strcpy(ano2, strtok(NULL, "/"));
 
     igualdade = atoi(ano1) - atoi(ano2);
-    printf(" %s e %s ", ano1, ano2);
+    // printf(" %s e %s ", ano1, ano2);
     if(igualdade == 0) {
         igualdade = atoi(mes1) - atoi(mes2);
 
@@ -224,14 +229,14 @@ int compara_data(char *data1, char *data2) {
 }
 
 
-void shift_index(IndexCampos *indexCampos, int i, int quant, int tipo) {
+void shift_index(IndexCampos *indexCampos, int i, IndexCabecalho *indCab, int tipo) {
     if(tipo == 0) {
-        for(int k = quant - 1; k > i; k--) {
+        for(int k = indCab->quant - 1; k > i; k--) {
             indexCampos[k].chaveInt = indexCampos[k-1].chaveInt;
             indexCampos[k].byteOffset = indexCampos[k-1].byteOffset;
         }
     } else if(tipo == 1) {
-        for(int k = quant - 1; k > i; k--) {
+        for(int k = indCab->quant - 1; k > i; k--) {
             strcpy(indexCampos[k].chaveStr, indexCampos[k-1].chaveStr);
             indexCampos[k].byteOffset = indexCampos[k-1].byteOffset;
         }
@@ -239,15 +244,15 @@ void shift_index(IndexCampos *indexCampos, int i, int quant, int tipo) {
 }
 
 
-void insere_index_int(IndexCampos *indexCampos, int *ponteiro, int quant, long long int byteOffset) {
+void insere_index_int(IndexCampos *indexCampos, int *ponteiro, IndexCabecalho *indCab, long long int byteOffset) {
     int i = 0;
 
-    while(i < (quant-1) && *ponteiro >= indexCampos[i].chaveInt) {
+    while(i < (indCab->quant - 1) && *ponteiro >= indexCampos[i].chaveInt) {
         i++;
     }
 
-    if(i < quant-1) {
-        shift_index(indexCampos, i, quant, 0);
+    if(i < indCab->quant - 1) {
+        shift_index(indexCampos, i, indCab, 0);
     }
 
     indexCampos[i].chaveInt = *ponteiro;
@@ -255,30 +260,32 @@ void insere_index_int(IndexCampos *indexCampos, int *ponteiro, int quant, long l
 }
 
 
-void insere_index_str(IndexCampos *indexCampos, char *ponteiro, int quant, int data, long long int byteOffset) {
+void insere_index_str(IndexCampos *indexCampos, char *ponteiro, IndexCabecalho *indCab, int data, long long int byteOffset) {
     int i = 0;
-    printf("TESTE");
+    
     if(data == 0) {
-        while(i < (quant-1) && strcmp(ponteiro, indexCampos[i].chaveStr) >= 0) {
+        while(i < (indCab->quant - 1) && strcmp(ponteiro, indexCampos[i].chaveStr) >= 0) {
             i++;
         }
     } else {
-        while(i < (quant-1) && compara_data(ponteiro, indexCampos[i].chaveStr) >= 0) {
+        while(i < (indCab->quant - 1) && compara_data(ponteiro, indexCampos[i].chaveStr) >= 0) {
             i++;
         }
     }
 
-    if(i < quant-1) {
-        shift_index(indexCampos, i, quant, 1);
+    if(i < indCab->quant - 1) {
+        shift_index(indexCampos, i, indCab, 1);
     }
-    printf("String na insere_index: %s", ponteiro);
+    
     strcpy(indexCampos[i].chaveStr, ponteiro);
-    preenche_cifrao(indexCampos[i].chaveStr);
     indexCampos[i].byteOffset = byteOffset;
 }
 
 
-void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, int *quant, long long int byteOffset) {
+void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, IndexCabecalho *indCab, long long int byteOffset) {
+
+    // printf("Data depois de tratada: %s, ", campos->dataCrime);
+    // printf("com tamanho de string: %ld.\n", strlen(campos->dataCrime));
 
     if(tipo == 0) {
         int *ponteiro;
@@ -292,8 +299,8 @@ void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexa
         }
 
         if(*ponteiro != 0) {
-            *quant = *quant + 1;
-            insere_index_int(indexCampos, ponteiro, *quant, byteOffset);
+            indCab->quant = indCab->quant + 1;
+            insere_index_int(indexCampos, ponteiro, indCab, byteOffset);
         }
     } else if(tipo == 1) {
         trunca_chaves(campos);
@@ -313,11 +320,13 @@ void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexa
         } else {
             erro_processamento();
         }
-        printf(" String: %s\n", ponteiro);
+
+        // printf("Data depois de ponteiro: %s, ", ponteiro);
+        // printf("com tamanho de string: %ld.\n", strlen(ponteiro));
+        
         if(strcmp(ponteiro, "NULO") != 0) {
-            printf("Teste1");
-            *quant = *quant + 1;
-            insere_index_str(indexCampos, ponteiro, *quant, data, byteOffset);
+            indCab->quant = indCab->quant + 1;
+            insere_index_str(indexCampos, ponteiro, indCab, data, byteOffset);
         }
     }
 

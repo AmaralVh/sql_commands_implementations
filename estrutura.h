@@ -28,6 +28,7 @@ struct campos {
 // estrutura de cabecalho para o arquivo de indices
 struct indexCabecalho {
     char status;
+    int quant;
 };
 
 // estrutura de campos para o arquivo de indices
@@ -80,9 +81,11 @@ FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho);
 
 void fecha_arquivo(FILE *arquivo, int tipo, Cabecalho *cabecalho);
 
+void preenche_cifrao(IndexCampos *indexCampos, IndexCabecalho *indCab);
+
 int seleciona_tipo(char *tipoDado);
 
-void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, int *quant, long long int byteOffset);
+void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, IndexCabecalho *indCab, long long int byteOffset);
 
 
 #endif

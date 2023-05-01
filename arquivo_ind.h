@@ -4,7 +4,7 @@
 #include "estrutura.h"
 
 
-void cria_arq_index(char *nomeArquivoIndex, IndexCampos *indexCampos, IndexCabecalho *indexCabecalho, int tipoDado, int quant);
+void cria_arq_index(char *nomeArquivoIndex, IndexCampos *indexCampos, IndexCabecalho *indexCabecalho, int tipoDado);
 
 
 #endif
