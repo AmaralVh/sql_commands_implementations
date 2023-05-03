@@ -15,7 +15,5 @@ void trata_dados_csv(Campos *dados);
 
 void le_campos_variaveis_csv(FILE *arquivo, Campos *dados, int opcao);
 
-void binarioNaTela(char *nomeArquivoBinario);
-
 
 #endif

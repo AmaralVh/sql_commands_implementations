@@ -26,6 +26,9 @@ int main (){
         case 3:
             create_index();
             break;
+        case 4:
+            select_from_where();
+            break;
         default:
             erro_processamento();
             break;

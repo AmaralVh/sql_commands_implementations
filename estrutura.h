@@ -22,7 +22,6 @@ struct campos {
     char marcaCelular[13];
     char *lugarCrime;
     char *descricaoCrime;
-    int quantidade;
 };
 
 // estrutura de cabecalho para o arquivo de indices
@@ -42,16 +41,29 @@ struct indexCampos {
     long long int byteOffset;
 };
 
+// estrutura para guardar os campos usados para busca
+struct chavesBusca {
+    int tipo;
+    char campoBusca[40];
+    union {
+        int chaveInt;
+        char chaveStr[100];
+    };
+};
+
 
 typedef struct campos Campos;
 typedef struct cabecalho Cabecalho;
 typedef struct indexCabecalho IndexCabecalho;
 typedef struct indexCampos IndexCampos;
+typedef struct chavesBusca ChavesBusca;
 
 
 void erro_processamento();
 
 Campos *aloca_campos();
+
+ChavesBusca *aloca_chaves_busca(int numPares);
 
 IndexCampos *aloca_indice();
 
@@ -63,7 +75,9 @@ IndexCabecalho *aloca_cabecalho_index();
 
 void cria_cabecalho_ind(IndexCabecalho *indexCabecalho);
 
-void aloca_campos_variaveis(Campos *dados);
+void aloca_campos_variaveis(Campos *dados, int i);
+
+char *copia_campo_variavel(char *origem);
 
 FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho);
 
