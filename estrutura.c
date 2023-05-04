@@ -46,6 +46,12 @@ void aloca_campos_variaveis(Campos *dados, int i) {
 }
 
 
+void desaloca_campos_variaveis(Campos *dados) {
+    free(dados->lugarCrime);
+    free(dados->descricaoCrime);
+}
+
+
 char *copia_campo_variavel(char *origem) {
     char *destino;
     int tamanho = strlen(origem);
@@ -176,7 +182,7 @@ int seleciona_tipo(char *tipoDado) {
 
 
 // Preenche a string do indice com cifrao ate completar 12 bytes:
-void preenche_cifrao(IndexCampos *indexCampos, IndexCabecalho *indCab) {   
+void preenche_cifrao_ind(IndexCampos *indexCampos, IndexCabecalho *indCab) {   
     // Para cada indice:
     for(int i = 0; i < indCab->quant; i++) {
         int tamanhoString = strlen(indexCampos[i].chaveStr);
@@ -191,6 +197,21 @@ void preenche_cifrao(IndexCampos *indexCampos, IndexCabecalho *indCab) {
             indexCampos->chaveStr[j] = '\0';
         }
     }
+}
+
+
+void preenche_cifrao_chav_str(ChavesBusca *chavesBusca, int index) {   
+    int tamanhoString = strlen(chavesBusca[index].chaveStr);
+    
+    // Se tam < 12, preenchemos com '$':
+    if(tamanhoString < 12) {
+        int j;
+
+        for(j = tamanhoString; j < 12; j++) {
+            chavesBusca[index].chaveStr[j] = '$';
+        }
+        chavesBusca[index].chaveStr[j] = '\0';
+    } 
 }
 
 

@@ -26,6 +26,10 @@ int num_registros_bin(Cabecalho *cabecalho);
 
 void binarioNaTela(char *nomeArquivoBinario);
 
-void busca_sequencial(FILE *arquivoBin, Campos *campos, Campos *encontrados, Cabecalho *cab, ChavesBusca *chavesBusca, int numPares);
+void busca_sequencial(FILE *arquivoBin, Campos *campos, Cabecalho *cab, ChavesBusca *chavesBusca, int numPares);
+
+void percorre_ind_iguais(IndexCampos *indCampos, ChavesBusca *chavBusca, int meio, int indexado, FILE *arqBin, Campos *campos, int numPares);
+
+void busca_binaria(IndexCampos *indCampos, int quant, ChavesBusca *chavBusca, int index, FILE *arqBin, Campos *campos, int numPares);
 
 #endif

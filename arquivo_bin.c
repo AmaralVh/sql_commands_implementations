@@ -267,11 +267,24 @@ int compara_campos_str(Campos *campos, ChavesBusca *chavesBusca, int j) {
 
     return igual;
 }
+
+
+void print_encontrados(int numEncontrados, Campos *encontrados) {
+    if(numEncontrados > 0) {
+        print_de_arquivo_bin(encontrados, numEncontrados);
+    } else {
+        erro_reg_inexistente();
+    }
+}
  
 
-void busca_sequencial(FILE *arquivoBin, Campos *campos, Campos *encontrados, Cabecalho *cab, ChavesBusca *chavesBusca, int numPares) {
+void busca_sequencial(FILE *arquivoBin, Campos *campos, Cabecalho *cab, ChavesBusca *chavesBusca, int numPares) {
+    Campos *encontrados;
     int i = 0;
     int numEncontrados = 0;
+
+    encontrados = aloca_campos();
+    aloca_campos_variaveis(encontrados, 0);
 
     if(!registro_inexistente(arquivoBin, cab)) {
         while(i < cab->nroRegArq) {
@@ -300,7 +313,7 @@ void busca_sequencial(FILE *arquivoBin, Campos *campos, Campos *encontrados, Cab
                 if(numEncontrados > 0) {
                     encontrados = (Campos *) realloc(encontrados, (numEncontrados + 1) * sizeof(Campos));
                 }
-                
+
                 // Salva o registro encontrado:
                 encontrados[numEncontrados].idCrime = campos->idCrime;
                 encontrados[numEncontrados].numeroArtigo = campos->numeroArtigo;
@@ -316,10 +329,140 @@ void busca_sequencial(FILE *arquivoBin, Campos *campos, Campos *encontrados, Cab
         }
     } 
 
-    if(numEncontrados > 0) {
-        print_de_arquivo_bin(encontrados, numEncontrados);
-    } else {
+    print_encontrados(numEncontrados, encontrados);
+    
+    for(int k = 0; k < numEncontrados; k++) {
+        free(encontrados[k].lugarCrime);
+        free(encontrados[k].descricaoCrime);
+    }
+
+    free(encontrados);
+}
+
+
+void percorre_ind_iguais(IndexCampos *indCampos, ChavesBusca *chavBusca, int meio, int index, FILE *arqBin, Campos *campos, int numPares) {
+    Campos *encontrados;
+    int primeiro = meio;
+    int ultimo = meio;
+    int igual = 1;
+    int numEncontrados = 0;
+
+    encontrados = aloca_campos();
+    aloca_campos_variaveis(encontrados, 0);
+
+    if(chavBusca[index].tipo == 0) {
+        // Encontra o inicio dos indices iguais ao procurado:
+        while(indCampos[primeiro - 1].chaveInt == chavBusca[index].chaveInt) {
+            primeiro--;
+        }
+        // Encontra o fim dos indices iguais ao procurado:
+        while(indCampos[ultimo + 1].chaveInt == chavBusca[index].chaveInt) {
+            ultimo++;
+        }
+    } else if(chavBusca[index].tipo == 1) {
+        // Encontra o inicio dos indices iguais ao procurado:
+        while(strcmp(indCampos[primeiro - 1].chaveStr, chavBusca[index].chaveStr) == 0) {
+            primeiro--;
+        }
+        // Encontra o fim dos indices iguais ao procurado:
+        while(strcmp(indCampos[ultimo + 1].chaveStr, chavBusca[index].chaveStr) == 0) {
+            ultimo++;
+        }
+    }
+
+    // Percorre todos os indices iguais a chave indexada:
+    for(int i = primeiro; i <= ultimo; i++) {
+        fseek(arqBin, indCampos[i].byteOffset, SEEK_SET);
+
+        le_arquivo_bin(arqBin, campos);
+
+        trata_dados_bin(campos);
+
+        for(int j = 0; j < numPares; j++) {
+            if(j != index) {
+                if(chavBusca[j].tipo == 0) {
+                    igual = compara_campos_int(campos, chavBusca, j);
+                } else if(chavBusca[j].tipo == 1) {
+                    igual = compara_campos_str(campos, chavBusca, j);
+                }
+
+                if(igual == 0) {
+                    break;
+                }
+            }
+        }
+
+        if(igual == 1) {
+            if(numEncontrados > 0) {
+                encontrados = (Campos *) realloc(encontrados, (numEncontrados + 1) * sizeof(Campos));
+            }
+            
+            // Salva o registro encontrado:
+            encontrados[numEncontrados].idCrime = campos->idCrime;
+            encontrados[numEncontrados].numeroArtigo = campos->numeroArtigo;
+            encontrados[numEncontrados].removido = campos->removido;
+            strcpy(encontrados[numEncontrados].dataCrime, campos->dataCrime);
+            encontrados[numEncontrados].lugarCrime = copia_campo_variavel(campos->lugarCrime);
+            encontrados[numEncontrados].descricaoCrime = copia_campo_variavel(campos->descricaoCrime);
+            strcpy(encontrados[numEncontrados].marcaCelular, campos->marcaCelular);
+            
+            numEncontrados++;
+        }
+    }
+
+    print_encontrados(numEncontrados, encontrados);
+
+    for(int k = 0; k < numEncontrados; k++) {
+        free(encontrados[k].lugarCrime);
+        free(encontrados[k].descricaoCrime);
+    }
+
+    free(encontrados);
+}
+
+
+void busca_binaria(IndexCampos *indexCampos, int quantInd, ChavesBusca *chavesBusca, int index, FILE *arqBin, Campos *campos, int numPares) {
+    int esq = 0;
+    int dir = quantInd - 1;
+    int encontrouIndice = 0;
+
+    if(chavesBusca[index].tipo == 0) {
+        while(esq <= dir) {
+            int meio = (esq + dir) / 2;
+
+            if(chavesBusca[index].chaveInt == indexCampos[meio].chaveInt) {
+                encontrouIndice = 1;
+                percorre_ind_iguais(indexCampos, chavesBusca, meio, index, arqBin, campos, numPares);
+                break;
+            }
+
+            if(chavesBusca[index].chaveInt < indexCampos[meio].chaveInt) {
+                dir = meio - 1;
+            } else if(chavesBusca[index].chaveInt > indexCampos[meio].chaveInt) {
+                esq = meio + 1;
+            }
+        }
+    } else if(chavesBusca[index].tipo == 1) {
+        preenche_cifrao_chav_str(chavesBusca, index);
+
+        while(esq <= dir) {
+            int meio = (esq + dir) / 2;
+            if(strcmp(chavesBusca[index].chaveStr, indexCampos[meio].chaveStr) == 0) {
+                encontrouIndice = 1;
+                percorre_ind_iguais(indexCampos, chavesBusca, meio, index, arqBin, campos, numPares);
+                break;
+            }
+
+            if(strcmp(chavesBusca[index].chaveStr, indexCampos[meio].chaveStr) < 0) {
+                dir = meio - 1;
+            } else if(strcmp(chavesBusca[index].chaveStr, indexCampos[meio].chaveStr) > 0) {
+                esq = meio + 1;
+            }
+        }
+    }
+
+    if(encontrouIndice == 0) {
         erro_reg_inexistente();
     }
-    
+
 }

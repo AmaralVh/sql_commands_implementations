@@ -77,6 +77,8 @@ void cria_cabecalho_ind(IndexCabecalho *indexCabecalho);
 
 void aloca_campos_variaveis(Campos *dados, int i);
 
+void desaloca_campos_variaveis(Campos *dados);
+
 char *copia_campo_variavel(char *origem);
 
 FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho);
@@ -95,7 +97,9 @@ FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho);
 
 void fecha_arquivo(FILE *arquivo, int tipo, Cabecalho *cabecalho);
 
-void preenche_cifrao(IndexCampos *indexCampos, IndexCabecalho *indCab);
+void preenche_cifrao_ind(IndexCampos *indexCampos, IndexCabecalho *indCab);
+
+void preenche_cifrao_chav_str(ChavesBusca *chavesBusca, int index);
 
 int seleciona_tipo(char *tipoDado);
 

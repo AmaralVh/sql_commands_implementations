@@ -35,6 +35,7 @@ void create_table() {
             }
         }
 
+        desaloca_campos_variaveis(dados);
         free(dados);
     }
 
@@ -77,6 +78,7 @@ void select_from() {
         }
     }    
     
+    desaloca_campos_variaveis(dados);
     free(dados);
 
     // Fechamento do arquivo:
@@ -142,19 +144,25 @@ void create_index() {
         }
     }
 
+    fecha_arquivo(arquivoBin, 3, cabecalho);
+
     // Preenche indice com cifrao ate 12 bytes:
     if(tipo == 1) {
-        preenche_cifrao(indexCampos, indexCab);
+        preenche_cifrao_ind(indexCampos, indexCab);
     }
     
 
-    // for(int i = 0; i < indexCabecalho->quant; i++) {
-    //     printf("%d, %lld\n", indexCampos[i].chaveInt, indexCampos[i].byteOffset);
-    // }
+    for(int i = 0; i < indexCab->quant; i++) {
+        printf("%d, %lld\n", indexCampos[i].chaveInt, indexCampos[i].byteOffset);
+    }
+
+    printf("Quantidade de nao nulos: %d.\n", indexCab->quant);
 
     // Cria o arquivo de indice:
     cria_arq_index(nomeArqIndex, indexCampos, indexCab, tipo);
 
+    free(cabecalho);
+    free(campos);
     free(indexCampos);
     free(indexCab);
 
@@ -164,22 +172,22 @@ void create_index() {
 
 // Escolha da quarta funcionalidade:
 void select_from_where() {
-    FILE *arquivoBin;
+    FILE *arqBin;
+    FILE *arqInd;
     char nomeArqBin[50];
     char campoIndexado[40];
     char tipoDado[30];
     char nomeArqIndex[50];
     int numBuscas;
-    IndexCabecalho *indexCabecalho;
+    IndexCabecalho *indexCab;
     IndexCampos *indexCampos;
     ChavesBusca *chavesBusca;
     Cabecalho *cab;
     Campos *campos;
-    Campos *encontrados;
 
     scanf("%s %s %s %s %d", nomeArqBin, campoIndexado, tipoDado, nomeArqIndex, &numBuscas);
 
-    int indexado = 0;
+    int indexado = -1;
     int numPares;
 
     int tipo = seleciona_tipo(tipoDado);
@@ -195,7 +203,7 @@ void select_from_where() {
 
             // Verifica se ha um campo indexado para a busca:
             if(strcmp(campoIndexado, chavesBusca[j].campoBusca) == 0) {
-                indexado = 1;
+                indexado = j;
             }
             
             // Caso para campo inteiro:
@@ -208,24 +216,53 @@ void select_from_where() {
             }
         }
 
-        if(indexado == 0) {
+        printf("Resposta para busca %d\n", i + 1);
+
+        if(indexado == -1) {
             // Aloca cabecalho e campos para leitura:
             cab = aloca_cabecalho();
             campos = aloca_campos();
             aloca_campos_variaveis(campos, 0);
-            encontrados = aloca_campos();
-            aloca_campos_variaveis(encontrados, 0);
 
-            arquivoBin = abre_arquivo(nomeArqBin, 3, cab);
+            arqBin = abre_arquivo(nomeArqBin, 3, cab);
 
-            printf("Resposta para busca %d\n", i + 1);
-            busca_sequencial(arquivoBin, campos, encontrados, cab, chavesBusca, numPares);
+            busca_sequencial(arqBin, campos, cab, chavesBusca, numPares);
+
+            fecha_arquivo(arqBin, 3, cab);
         } else {
-            // busca_binaria();
+            indexCab = aloca_cabecalho_index();
+            indexCampos = aloca_indice();
+            cab = aloca_cabecalho();
+            campos = aloca_campos();
+            aloca_campos_variaveis(campos, 0);
+
+            arqInd = abre_arquivo_ind(nomeArqIndex, indexCab, 2);
+
+            le_cab_indince(arqInd, indexCab);
+
+            indexCampos = le_arq_indice(arqInd, indexCampos, indexCab, tipo);
+
+            // printf("\n\n\nAgora, printando la fora:\n\n");
+            // for(int i = 0; i < indexCab->quant; i++) {
+            //     printf("%d, %lld\n", indexCampos[i].chaveInt, indexCampos[i].byteOffset);
+            // }
+
+            arqBin = abre_arquivo(nomeArqBin, 3, cab);
+
+            busca_binaria(indexCampos, indexCab->quant, chavesBusca, indexado, arqBin, campos, numPares);
+
+            fecha_arquivo_ind(arqInd, indexCab);
+            fecha_arquivo(arqBin, 3, cab);
+
+            free(indexCampos);
+            free(indexCab);
         }
         
         free(chavesBusca);
+        desaloca_campos_variaveis(campos);
+        free(campos);
+        free(cab);
 
-        indexado = 0;
+        indexado = -1;
     }
 }
