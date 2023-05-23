@@ -7,6 +7,7 @@
 #include "arquivo_csv.h"
 #include "arquivo_ind.h"
 #include "utils.h"
+#include "estrutura_index.h"
 
 
 void create_table();
@@ -15,6 +16,12 @@ void select_from();
 
 void create_index();
 
-void select_from_where();
+long long int **select_from_where(int func);
+
+void delete_from_where();
+
+void insert_into();
+
+void update();
 
 #endif

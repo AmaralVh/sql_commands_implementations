@@ -11,9 +11,9 @@ void le_cabecalho_csv(FILE *arquivo);
 
 int le_arquivo_csv(FILE *arquivo, Campos *dados);
 
-void trata_dados_csv(Campos *dados);
-
 void le_campos_variaveis_csv(FILE *arquivo, Campos *dados, int opcao);
+
+void trata_dados_csv(Campos *dados);
 
 
 #endif

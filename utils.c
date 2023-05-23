@@ -1,13 +1,13 @@
 #include "utils.h"
 
 
-// Ocorrencia de erro:
+// Ocorrencia de erro de processamento:
 void erro_processamento() {
     printf("Falha no processamento do arquivo.\n");
     exit(0);
 }
 
-
+// Recebe uma string entre aspas:
 void scan_quote_string(char *str) {
     /*
      * Use essa função para ler um campo string delimitado entre aspas (").

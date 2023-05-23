@@ -6,61 +6,43 @@ Campos *aloca_campos() {
     if (dados == NULL){
         erro_processamento();
     }
-
     return dados;
 }
 
-
+// Aloca a estrutura usada para chaves de busca e atualizacoes:
 ChavesBusca *aloca_chaves_busca(int numPares) {
     ChavesBusca *chavesBusca = (ChavesBusca *) calloc(numPares, sizeof(ChavesBusca));
     if (chavesBusca == NULL){
         erro_processamento();
     }
-
     return chavesBusca;
 }
-
-
-// Alocacao do indice:
-IndexCampos *aloca_indice() {
-    IndexCampos *indexCampos = (IndexCampos *) calloc(1, sizeof(IndexCampos));
-
-    if (indexCampos == NULL) {
-        erro_processamento();
-    }
-
-    return indexCampos;
-}
-
-// Realocacao de indice (uma posicao a mais):
-void realoca_indice(IndexCampos *indexCampos, int n) {
-    indexCampos = (IndexCampos *) realloc(indexCampos, (n+1) * sizeof(IndexCampos));
-}
-
 
 // Para campos variaveis alocamos char por char
 void aloca_campos_variaveis(Campos *dados, int i) {
     dados[i].lugarCrime = (char *)calloc(1, sizeof(char));
     dados[i].descricaoCrime = (char *)calloc(1, sizeof(char));
-
 }
 
 
+// Aloca a matriz de byteoffsets:
+long long int **aloca_byteoffsets(int numBuscas) {
+    long long int **byteOffsets;
+
+    byteOffsets = (long long int **) calloc(numBuscas, sizeof(long long int *));
+
+    for(int i = 0; i < numBuscas; i++) {
+        byteOffsets[i] = (long long int *) calloc(1, sizeof(long long int));
+    }
+
+    return byteOffsets;
+}
+
+
+// Desaloca campos variaveis:
 void desaloca_campos_variaveis(Campos *dados) {
     free(dados->lugarCrime);
     free(dados->descricaoCrime);
-}
-
-
-char *copia_campo_variavel(char *origem) {
-    char *destino;
-    int tamanho = strlen(origem);
-
-    destino = (char *) calloc((tamanho + 1), sizeof(char));
-
-    strcpy(destino, origem);
-
-    return destino;
 }
 
 
@@ -74,25 +56,6 @@ Cabecalho *aloca_cabecalho() {
 }
 
 
-// Aloca cabecalho do arq. de indice:
-IndexCabecalho *aloca_cabecalho_index() {
-    IndexCabecalho *indexCabecalho = (IndexCabecalho *) calloc(1, sizeof(IndexCabecalho));
-    if(indexCabecalho == NULL) {
-        erro_processamento();
-    }
-    return indexCabecalho;
-}
-
-
-// Escrevendo cabecalho no arquivo binario: 
-void escreve_cabecalho(FILE *arquivo, Cabecalho *cabecalho) {
-    fwrite(&cabecalho->status, sizeof(char), 1, arquivo);
-    fwrite(&cabecalho->proxByteOffset, sizeof(long long int), 1, arquivo);
-    fwrite(&cabecalho->nroRegArq, sizeof(int), 1, arquivo);
-    fwrite(&cabecalho->nroRegRem, sizeof(int), 1, arquivo);
-}
-
-
 // Criando cabecalho:
 void cria_cabecalho(Cabecalho *cabecalho) {
     cabecalho->status = '0';
@@ -102,104 +65,98 @@ void cria_cabecalho(Cabecalho *cabecalho) {
 }
 
 
-// Cria o cabecalho do arq. de indice:
-void cria_cabecalho_ind(IndexCabecalho *indexCabecalho) {
-    indexCabecalho->status = '0'; // Inicia como inconsistente (arq. aberto p/ escrita).
-}
-
-
-// Atualizacao perante o byte offset e numero de arquivos
-void atualiza_cabecalho_escrita(Cabecalho *cabecalho, int deslocamentoOffset) {
-    cabecalho->proxByteOffset = cabecalho->proxByteOffset + deslocamentoOffset;
-    cabecalho->nroRegArq = cabecalho->nroRegArq + 1;
-}
-
-
-// Para a questao de fechar o escopo do cabecalho, necessita de uma ultima atualizacao necessaria
-void atualiza_cabecalho_fechamento(FILE *arquivo, Cabecalho *cabecalho) {
-    cabecalho->status = '1';
-
-    fseek(arquivo, 0, SEEK_SET);
-
-    escreve_cabecalho(arquivo, cabecalho);
-}
-
-
-// Atualiza o cabecalho dos indices no fechamento do arquivo:
-void atualiza_cab_ind_fechamento(FILE *arquivo, IndexCabecalho *indexCabecalho) {
-    indexCabecalho->status = '1'; // Marca como consistente.
-
-    // Escreve cabecalho atualizado no inicio do arquivo:
-    fseek(arquivo, 0, SEEK_SET);
-    fwrite(&indexCabecalho->status, sizeof(char), 1, arquivo);
-}
-
-
-// Abrindo arquivo:
-FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho) {
-    FILE *arquivo;
-
-    // Fizemos um if para cada tipo, sendo o primeiro para leitura:
-    if (tipo == 1) {
-        arquivo = fopen(nome_arquivo, "r");
-    } 
-    else if (tipo == 2) { // Abertura para escrever no binario.
-        arquivo = fopen(nome_arquivo, "wb");
-        cria_cabecalho(cabecalho);
-    }
-    else if (tipo == 3) { // Abertura para ler no binario.
-        arquivo = fopen(nome_arquivo, "rb");
-    } 
-
-    if(arquivo == NULL) {
-        erro_processamento();
-    }
-
-    return arquivo;
-}
-
-
-// Fechamento e atualizacao do cabecalho:
-void fecha_arquivo(FILE *arquivo, int tipo, Cabecalho *cabecalho) {
-    if (tipo == 2){
-        atualiza_cabecalho_fechamento(arquivo, cabecalho);
-    }
-
-    fclose(arquivo);
-}
-
-
-// Retorna 0 se o tipo do index for int, e 1 se for string:
+// Retorna tipo do dado
 int seleciona_tipo(char *tipoDado) {
     if(strcmp(tipoDado, "inteiro") == 0) {
-        return 0;
+        return 0;   // inteiro
     } else if(strcmp(tipoDado, "string") == 0) {
-        return 1;
+        return 1;   // sting
     } else {
         erro_processamento();
     }
+
+    return -1;
 }
 
 
-// Preenche a string do indice com cifrao ate completar 12 bytes:
-void preenche_cifrao_ind(IndexCampos *indexCampos, IndexCabecalho *indCab) {   
-    // Para cada indice:
-    for(int i = 0; i < indCab->quant; i++) {
-        int tamanhoString = strlen(indexCampos[i].chaveStr);
-        
-        // Se tam < 12, preenchemos com '$':
-        if(tamanhoString < 12) {
-            int j;
+// tratando dados se for NULO e sobra de bytes (Preenche cifrao):
+void trata_dados_estrutura_para_binario(Campos *dados, int func){
+    dados->removido = '0';
 
-            for(j = tamanhoString; j < 12; j++) {
-                indexCampos[i].chaveStr[j] = '$';
-            }
-            indexCampos->chaveStr[j] = '\0';
+    // Preenche com cifrao caso valor ser NULO:
+    if(strcmp(dados->dataCrime, "NULO") == 0) {
+        strcpy(dados->dataCrime, "$$$$$$$$$$");
+    }
+    if(strcmp(dados->marcaCelular, "NULO") == 0) {
+        strcpy(dados->marcaCelular, "$$$$$$$$$$$$");
+    }
+    if(dados->numeroArtigo == 0) {
+        dados->numeroArtigo = -1;
+    }
+
+    if(func == 7) {
+        if(strcmp(dados->lugarCrime, "NULO") == 0) {
+            strcpy(dados->lugarCrime, "");
+        }
+        if(strcmp(dados->descricaoCrime, "NULO") == 0) {
+            strcpy(dados->descricaoCrime, "");
+        }
+    }
+
+    // Preenche com cifrao a marcaCelular:
+    int tam = strlen(dados->marcaCelular);
+
+    if(tam < 12) {
+        for(int i = tam; i < 12; i++) {
+            dados->marcaCelular[i] = '$';
         }
     }
 }
 
 
+// Trata os dados inserindo cifrao na marcaCelular se for nulo ou menor que 12 bytes:
+void trata_dados_estrutura_para_binario_chave(ChavesBusca *atualizacoes, int j) {
+    // Preenche com cifrao a marcaCelular:
+    if(strcmp(atualizacoes[j].campoBusca, "marcaCelular") == 0) {
+        int tam = strlen(atualizacoes[j].chaveStr);
+
+        if(tam < 12) {
+            for(int i = tam; i < 12; i++) {
+                atualizacoes[j].chaveStr[i] = '$';
+            }
+        }
+    }
+}
+
+
+// Tratando do caso NULO e dos casos de sobra de bytes:
+void trata_dados_binario_para_estrutura(Campos *dados) {
+
+    // caso de entrada vazia
+    if(strcmp(dados->dataCrime, "") == 0) { 
+        strcpy(dados->dataCrime, "NULO");
+    }
+    // caso de entrada nula
+    if(dados->numeroArtigo == (-1)) {
+        dados->numeroArtigo = 0;        // Indica NULO
+    }
+
+    // marca do celular $
+    if(strcmp(dados->marcaCelular, "$$$$$$$$$$$$") == 0) {
+        strcpy(dados->marcaCelular, "NULO");
+    }
+
+    //laco para colocar \0 no final da string
+    for(int i = 0; i < strlen(dados->marcaCelular); i++) {
+        if(dados->marcaCelular[i] == '$') {
+            dados->marcaCelular[i] = '\0';
+            break;
+        }
+    }
+}
+
+
+// Preenche qualquer chave str com cifrao ate 12 bytes:
 void preenche_cifrao_chav_str(ChavesBusca *chavesBusca, int index) {   
     int tamanhoString = strlen(chavesBusca[index].chaveStr);
     
@@ -247,147 +204,201 @@ void trunca_chaves(Campos *campos) {
 }
 
 
-// Funcao para comparacao de duas datas:
-int compara_data(char *data1, char *data2) {
-    char d1[11], d2[11];
-    char dia1[3], dia2[3];
-    char mes1[3], mes2[3];
-    char ano1[5], ano2[5];
-
-    strcpy(d1, data1);
-    strcpy(d2, data2);
-
-    int igualdade = 0;
-
-    // Separacao de dia, mes e ano:
-    strcpy(dia1, strtok(d1, "/"));
-    strcpy(mes1, strtok(NULL, "/"));
-    strcpy(ano1, strtok(NULL, "/"));
-    strcpy(dia2, strtok(d2, "/"));
-    strcpy(mes2, strtok(NULL, "/"));
-    strcpy(ano2, strtok(NULL, "/"));
-
-    // Comparacao de ano, depois mes, depois dia:
-    igualdade = atoi(ano1) - atoi(ano2);
-    if(igualdade == 0) {
-        igualdade = atoi(mes1) - atoi(mes2);
-
-        if(igualdade == 0) {
-            igualdade = atoi(dia1) - atoi(dia2);
-        }
+// Processa o dado lido de uma string para um inteiro (se nulo -> -1):
+void string_lida_para_int(char *stringLida, Campos *insercao) {
+    if(strcmp(stringLida, "") == 0) {
+        insercao->numeroArtigo = -1;
     }
-    
-    return igualdade;
+    else {
+        insercao->numeroArtigo = atoi(stringLida);
+    }
 }
 
-
-// Funcao para dar shift em uma posicao dos indices a partir de 'i':
-void shift_index(IndexCampos *indexCampos, int i, IndexCabecalho *indCab, int tipo) {
-    // Para indices inteiros:
-    if(tipo == 0) {
-        for(int k = indCab->quant - 1; k > i; k--) {
-            indexCampos[k].chaveInt = indexCampos[k-1].chaveInt;
-            indexCampos[k].byteOffset = indexCampos[k-1].byteOffset;
-        }
-    } else if(tipo == 1) { // Para indices string:
-        for(int k = indCab->quant - 1; k > i; k--) {
-            strcpy(indexCampos[k].chaveStr, indexCampos[k-1].chaveStr);
-            indexCampos[k].byteOffset = indexCampos[k-1].byteOffset;
-        }
+// Processaoo chave lida de uma string para um inteiro (se nulo -> -1): 
+void string_lida_para_int_chaves(char *stringLida, ChavesBusca *chaves, int j) {
+    if(strcmp(stringLida, "") == 0) {
+        chaves[j].chaveInt = -1;
+    }
+    else {
+        chaves[j].chaveInt = atoi(stringLida);
     }
 }
 
 
-// Insere no array de indices inteiros:
-void insere_index_int(IndexCampos *indexCampos, int *ponteiro, IndexCabecalho *indCab, long long int byteOffset) {
-    int i = 0;
-
-    // Incrementa 'i' ate achar a posicao certa para inserir indice ordenadamente:
-    while(i < (indCab->quant - 1) && *ponteiro >= indexCampos[i].chaveInt) {
-        i++;
+// Processa dado lido de string para uma string colocando cifroes se for nula:
+Campos *string_lida_para_str(char *stringLida, Campos *insercao, char *campo) {
+    // Preenche a string caso seja nula:
+    if(strcmp(stringLida, "") == 0) {
+        if(strcmp(campo, "dataCrime") == 0) {
+            strcpy(insercao->dataCrime, "$$$$$$$$$$");
+        } 
+        else if(strcmp(campo, "marcaCelular") == 0) {
+            strcpy(insercao->marcaCelular, "$$$$$$$$$$$$");
+        }
+        else if(strcmp(campo, "lugarCrime") == 0) {
+            insercao->lugarCrime = stringLida;
+        }
+        else if(strcmp(campo, "descricaoCrime") == 0) {
+            insercao->descricaoCrime = stringLida;
+        }
+    } 
+    else {
+        if(strcmp(campo, "dataCrime") == 0) {
+            strcpy(insercao->dataCrime, stringLida);
+        } 
+        else if(strcmp(campo, "marcaCelular") == 0) {
+            strcpy(insercao->marcaCelular, stringLida);
+        }
+        else if(strcmp(campo, "lugarCrime") == 0) {
+            insercao->lugarCrime = stringLida;
+        }
+        else if(strcmp(campo, "descricaoCrime") == 0) {
+            insercao->descricaoCrime = stringLida;
+        }
     }
 
-    // Chama funcao de shift, se preciso:
-    if(i < indCab->quant - 1) {
-        shift_index(indexCampos, i, indCab, 0);
-    }
-
-    // Insere index e byte offset:
-    indexCampos[i].chaveInt = *ponteiro;
-    indexCampos[i].byteOffset = byteOffset;
+    return insercao;
 }
 
 
-// Insere no array de indices string:
-void insere_index_str(IndexCampos *indexCampos, char *ponteiro, IndexCabecalho *indCab, int data, long long int byteOffset) {
-    int i = 0;
-    
-    // Se indice nao for uma data, incrementa 'i' ate achar a posicao de insercao:
-    if(data == 0) {
-        while(i < (indCab->quant - 1) && strcmp(ponteiro, indexCampos[i].chaveStr) >= 0) {
-            i++;
+// Processa chave lida de string para uma string colocando cifroes se for nula:
+void string_lida_para_str_chaves(char *stringLida, ChavesBusca *chaves, int j) {
+    // Preenche a string caso seja nula:
+    if(strcmp(stringLida, "") == 0) {
+        if(strcmp(chaves[j].campoBusca, "dataCrime") == 0) {
+            strcpy(chaves[j].chaveStr, "$$$$$$$$$$");
+        } 
+        else if(strcmp(chaves[j].campoBusca, "marcaCelular") == 0) {
+            strcpy(chaves[j].chaveStr, "$$$$$$$$$$$$");
         }
-    } else { // Se indice for uma data, fazemos o mesmo, mas usando compara_data() para comparar:
-        while(i < (indCab->quant - 1) && compara_data(ponteiro, indexCampos[i].chaveStr) >= 0) {
-            i++;
+        else if(strcmp(chaves[j].campoBusca, "lugarCrime") == 0) {
+            strcpy(chaves[j].chaveStr, stringLida);
+        }
+        else if(strcmp(chaves[j].campoBusca, "descricaoCrime") == 0) {
+            strcpy(chaves[j].chaveStr, stringLida);
+        }
+    } 
+    else {
+        if(strcmp(chaves[j].campoBusca, "dataCrime") == 0) {
+            strcpy(chaves[j].chaveStr, stringLida);
+        } 
+        else if(strcmp(chaves[j].campoBusca, "marcaCelular") == 0) {
+            strcpy(chaves[j].chaveStr, stringLida);
+        }
+        else if(strcmp(chaves[j].campoBusca, "lugarCrime") == 0) {
+            strcpy(chaves[j].chaveStr, stringLida);
+        }
+        else if(strcmp(chaves[j].campoBusca, "descricaoCrime") == 0) {
+            strcpy(chaves[j].chaveStr, stringLida);
         }
     }
-
-    // Chama funcao de shift, se precisar:
-    if(i < indCab->quant - 1) {
-        shift_index(indexCampos, i, indCab, 1);
-    }
-    
-    // Insere index e byte offser:
-    strcpy(indexCampos[i].chaveStr, ponteiro);
-    indexCampos[i].byteOffset = byteOffset;
 }
 
 
-// Funcao que seleciona qual o campo que sera indexado:
-void seleciona_index(IndexCampos *indexCampos, Campos *campos, char *campoIndexado, int tipo, IndexCabecalho *indCab, long long int byteOffset) {
-    // Se tipo = inteiro (0):
-    if(tipo == 0) {
-        int *ponteiro; // Ponteiro para guardar campo a ser indexado.
+// verifica se o inteiro simbolisa nulo
+int inteiro_nulo(int inteiro) {
+    if(inteiro == 0 || inteiro == -1) { // 0 ou -1
+        return 1;
+    }
+    return 0;
+}
 
-        if(strcmp(campoIndexado, "idCrime") == 0) {
-            ponteiro = &(campos->idCrime);
-        } else if(strcmp(campoIndexado, "numeroArtigo") == 0) {
-            ponteiro = &(campos->numeroArtigo);
-        } else {
-            erro_processamento();
+
+// verifica se a string simboliza nulo
+int string_nula(char *string) {
+    if(strcmp(string, "NULO") == 0 || strcmp(string, "") == 0) {
+        return 1;
+    }
+
+    if(strcmp(string, "$$$$$$$$$$") == 0 || strcmp(string, "$$$$$$$$$$$$") == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+// contagem de bytes no registro incluindo as atualizacoes
+int tam_atualizacao(ChavesBusca *atualizacoes, Campos *campos, int tamRegAtual, int numAtualiz) {
+    int tamRegNovo = 0;
+
+    int atualizaLugar = 0;
+    int atualizaDesc = 0;
+
+    // Checa se alguma atualizacao contempla descricao ou lugar do crime (se sim, inclui seus bytes na contagem):
+    for(int i = 0; i < numAtualiz; i++) {
+        if(strcmp(atualizacoes[i].campoBusca, "descricaoCrime") == 0) {
+            tamRegNovo = tamRegNovo + strlen(atualizacoes[i].chaveStr);
+            atualizaDesc = 1;
+
+        } else if(strcmp(atualizacoes[i].campoBusca, "lugarCrime") == 0) {
+            tamRegNovo = tamRegNovo + strlen(atualizacoes[i].chaveStr);
+            atualizaLugar = 1;
         }
+    }
 
-        // Se campo nao for nulo, chama insercao, e incrementa 'quant':
-        if(*ponteiro != 0) {
-            indCab->quant = indCab->quant + 1;
-            insere_index_int(indexCampos, ponteiro, indCab, byteOffset);
-        }
-    } else if(tipo == 1) { // Se tipo = string (1):
-        // Trunca a chave, se maior que 12:
-        trunca_chaves(campos);
+    // Conta os bytes dos campos fixos e dos delimitadores no tamanho total:
+    tamRegNovo = tamRegNovo + 31 + 3;
 
-        int data = 0;
-        char *ponteiro; // Ponteiro para guardar campo a ser indexado.
+    if(atualizaLugar == 0) {
+        tamRegNovo = tamRegNovo + strlen(campos->lugarCrime);   // byte do Reg antigo do lugar
+    }
+    if(atualizaDesc == 0) {
+        tamRegNovo = tamRegNovo + strlen(campos->descricaoCrime);   // byte do Reg antigo da descricao
+    }
 
-        if(strcmp(campoIndexado, "dataCrime") == 0) {
-            data = 1;
-            ponteiro = campos->dataCrime;
-        } else if(strcmp(campoIndexado, "marcaCelular") == 0) {
-            ponteiro = campos->marcaCelular;
-        } else if(strcmp(campoIndexado, "lugarCrime") == 0) {
-            ponteiro = campos->lugarCrime;
-        } else if(strcmp(campoIndexado, "descricaoCrime") == 0) {
-            ponteiro = campos->descricaoCrime;
-        } else {
-            erro_processamento();
+    return tamRegNovo;
+}
+
+
+// Atualiza os campos para os valores novos:
+void atualiza_campos(Campos *campos, ChavesBusca *atualizacoes, int numAtualiz) {
+    // Para cada atualizacao, checa qual o campo e modifica-o com o novo valor:
+    for(int i = 0; i < numAtualiz; i++) {
+
+        if(strcmp(atualizacoes[i].campoBusca, "idCrime") == 0) {
+            campos->idCrime = atualizacoes[i].chaveInt;
+
+        } else if(strcmp(atualizacoes[i].campoBusca, "lugarCrime") == 0) {
+            campos->lugarCrime = (char *) realloc(campos->lugarCrime, (strlen(atualizacoes[i].chaveStr)+1) * sizeof(char));
+            strcpy(campos->lugarCrime, atualizacoes[i].chaveStr);
+        
+        } else if(strcmp(atualizacoes[i].campoBusca, "descricaoCrime") == 0) {
+            campos->descricaoCrime = (char *) realloc(campos->descricaoCrime, (strlen(atualizacoes[i].chaveStr)+1) * sizeof(char));
+            strcpy(campos->descricaoCrime, atualizacoes[i].chaveStr);
+        
+        } else if(strcmp(atualizacoes[i].campoBusca, "dataCrime") == 0) {
+            strcpy(campos->dataCrime, atualizacoes[i].chaveStr);
+        
+        } else if(strcmp(atualizacoes[i].campoBusca, "numeroArtigo") == 0) {
+            campos->numeroArtigo = atualizacoes[i].chaveInt;
+        
+        } else if(strcmp(atualizacoes[i].campoBusca, "marcaCelular") == 0) {
+            strcpy(campos->marcaCelular, atualizacoes[i].chaveStr);
+
         }
         
-        // Se campo nao for nulo, chama insercao, e incrementa 'quant':
-        if(strcmp(ponteiro, "NULO") != 0) {
-            indCab->quant = indCab->quant + 1;
-            insere_index_str(indexCampos, ponteiro, indCab, data, byteOffset);
-        }
     }
+}
 
+
+// Copia um registro para outro novo e o retorna:
+Campos *copia_campos(Campos *camposOrigem) {
+    // Aloca novos campos:
+    Campos *camposDestino = aloca_campos();
+    aloca_campos_variaveis(camposDestino, 0);
+
+    // Copia de campos fixos:
+    camposDestino->idCrime = camposOrigem->idCrime;
+    camposDestino->numeroArtigo = camposOrigem->numeroArtigo;
+    strcpy(camposDestino->dataCrime, camposOrigem->dataCrime);
+    strcpy(camposDestino->marcaCelular, camposOrigem->marcaCelular);
+    
+    // Copia de campos variaveis, incluindo a realocacao de bytes:
+    camposDestino->lugarCrime = (char *) realloc(camposDestino->lugarCrime, (strlen(camposOrigem->lugarCrime) + 1) * sizeof(char));
+    camposDestino->descricaoCrime = (char *) realloc(camposDestino->descricaoCrime, (strlen(camposOrigem->descricaoCrime) + 1) * sizeof(char));
+
+    strcpy(camposDestino->lugarCrime, camposOrigem->lugarCrime);
+    strcpy(camposDestino->descricaoCrime, camposOrigem->descricaoCrime);
+
+    return camposDestino;
 }

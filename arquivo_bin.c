@@ -15,6 +15,83 @@ int le_cabecalho_bin(FILE *arquivo, Cabecalho *cabecalho){
 }
 
 
+// Escrevendo cabecalho no arquivo binario: 
+void escreve_cabecalho(FILE *arquivo, Cabecalho *cabecalho) {
+    fwrite(&cabecalho->status, sizeof(char), 1, arquivo);
+    fwrite(&cabecalho->proxByteOffset, sizeof(long long int), 1, arquivo);
+    fwrite(&cabecalho->nroRegArq, sizeof(int), 1, arquivo);
+    fwrite(&cabecalho->nroRegRem, sizeof(int), 1, arquivo);
+}
+
+
+// Atualizacao perante o byte offset e numero de arquivos
+void atualiza_cabecalho_escrita(Cabecalho *cabecalho, int deslocamentoOffset) {
+    cabecalho->proxByteOffset = cabecalho->proxByteOffset + deslocamentoOffset;
+    cabecalho->nroRegArq = cabecalho->nroRegArq + 1;
+}
+
+
+// Para a questao de fechar o escopo do cabecalho, necessita de uma ultima atualizacao necessaria
+void atualiza_cabecalho_fechamento(FILE *arquivo, Cabecalho *cabecalho) {
+    cabecalho->status = '1';
+
+    fseek(arquivo, 0, SEEK_SET);
+
+    escreve_cabecalho(arquivo, cabecalho);
+}
+
+
+// Abrindo arquivo:
+FILE *abre_arquivo(char *nome_arquivo, int tipo, Cabecalho *cabecalho) {
+    FILE *arquivo;
+
+    // Fizemos um switch para cada tipo de opcao para abertura de arquivo
+    switch (tipo){
+    case 1:     // o primeiro para leitura:
+        arquivo = fopen(nome_arquivo, "r");
+        break;
+
+    case 2:     // Abertura para escrever no binario pela primeira vez.
+        arquivo = fopen(nome_arquivo, "wb");
+        cria_cabecalho(cabecalho);
+        break;
+
+    case 3:     // Abertura para ler no binario.
+        arquivo = fopen(nome_arquivo, "rb");
+        break;
+
+    case 4:     // Abertura para ler e escrever no binario
+        arquivo = fopen(nome_arquivo, "rb+");
+        cabecalho->status = '0';
+        break;
+
+    case 5:     // Abre para escrever no binario que ja existe.
+        arquivo = fopen(nome_arquivo, "wb");
+        break;
+    
+    default:
+        break;
+    }
+
+    // arquivo inexistente
+    if(arquivo == NULL) {
+        erro_processamento();
+    }
+
+    return arquivo;
+}
+
+
+// Fechamento e atualizacao do cabecalho:
+void fecha_arquivo(FILE *arquivo, int tipo, Cabecalho *cabecalho) {
+    if (tipo == 2){
+        atualiza_cabecalho_fechamento(arquivo, cabecalho);
+    }
+
+    fclose(arquivo);
+}
+
+
 // Print de erro de registro inexistente:
 void erro_reg_inexistente() {
     printf("Registro inexistente.\n");
@@ -121,27 +198,6 @@ int le_arquivo_bin(FILE *arquivo, Campos *dados){
 }
 
 
-// Tratando do caso NULO e dos casos de sobra de bytes:
-void trata_dados_bin(Campos *dados) {
-    if(strcmp(dados->dataCrime, "") == 0) { 
-        strcpy(dados->dataCrime, "NULO");
-    }
-    if(dados->numeroArtigo == (-1)) {
-        dados->numeroArtigo = 0;        // Indica NULO
-    }
-    if(strcmp(dados->marcaCelular, "$$$$$$$$$$$$") == 0) {
-        strcpy(dados->marcaCelular, "NULO");
-    }
-
-    for(int i = 0; i < strlen(dados->marcaCelular); i++) {
-        if(dados->marcaCelular[i] == '$') {
-            dados->marcaCelular[i] = '\0';
-            break;
-        }
-    }
-}
-
-
 // Escrita no arquivo binario:
 void escreve_arquivo_bin(FILE *arquivo, Campos *dados, Cabecalho *cabecalho){
     if (cabecalho->nroRegArq == 0){
@@ -171,31 +227,22 @@ void escreve_arquivo_bin(FILE *arquivo, Campos *dados, Cabecalho *cabecalho){
 
 
 // Prints para a opcao 2 onde escreve todos os dados na tela
-void print_de_arquivo_bin(Campos *dados, int quantidade){
-    for(int i = 0; i < quantidade; i++) {
-        if(dados[i].removido == '0') {
-            printf("%d, ", dados[i].idCrime);
-            printf("%s, ", dados[i].dataCrime);
+void print_de_arquivo_bin(Campos *dados){
+    if(dados->removido == '0') {
+        printf("%d, ", dados->idCrime);
+        printf("%s, ", dados->dataCrime);
 
-            if (dados[i].numeroArtigo == 0)
-                printf("NULO, ");
-            else
-                printf("%d, ", dados[i].numeroArtigo);
+        if (dados->numeroArtigo == 0 || dados->numeroArtigo == (-1))
+            printf("NULO, ");
+        else
+            printf("%d, ", dados->numeroArtigo);
 
-            printf("%s, ", dados[i].lugarCrime);
-            printf("%s, ", dados[i].descricaoCrime);
-            printf("%s", dados[i].marcaCelular);
-            printf("\n");
-        }
+        printf("%s, ", dados->lugarCrime);
+        printf("%s, ", dados->descricaoCrime);
+        printf("%s", dados->marcaCelular);
+        printf("\n");
     }
 }
-
-
-// Retorna o total de registros do arquivo:
-int num_registros_bin(Cabecalho *cabecalho) {
-    return cabecalho->nroRegArq;
-}
-
 
 // Retorna um inteiro atrelado ao conteudo do arquivo binario:
 void binarioNaTela(char *nomeArquivoBinario) {
@@ -226,24 +273,24 @@ void binarioNaTela(char *nomeArquivoBinario) {
     fclose(fs);
 }
 
-
+// verifica se int de idCrime e numeroArtigo sao iguais
 int compara_campos_int(Campos *campos, ChavesBusca *chavesBusca, int j) {
     int igual = 0;
 
     if(strcmp(chavesBusca[j].campoBusca, "idCrime") == 0) {
         if(chavesBusca[j].chaveInt == campos->idCrime) {
-            igual = 1;
+            igual = 1;  // sao iguais
         }
     } else if(strcmp(chavesBusca[j].campoBusca, "numeroArtigo") == 0) {
         if(chavesBusca[j].chaveInt == campos->numeroArtigo) {
-            igual = 1;
+            igual = 1;  // sao iguais
         }
     }
 
     return igual;
 }
 
-
+// verifica se strings sao iguais
 int compara_campos_str(Campos *campos, ChavesBusca *chavesBusca, int j) {
     int igual = 0;
 
@@ -269,38 +316,42 @@ int compara_campos_str(Campos *campos, ChavesBusca *chavesBusca, int j) {
 }
 
 
-void print_encontrados(int numEncontrados, Campos *encontrados) {
-    if(numEncontrados > 0) {
-        print_de_arquivo_bin(encontrados, numEncontrados);
-    } else {
-        erro_reg_inexistente();
-    }
-}
- 
+// marca registro como removido e escreve no arquivo binario
+void marca_removido(FILE *arqBin, Campos *campos, long long int byteOffset) {
+    campos->removido = '1';     // seta pra 1, no removido
 
-void busca_sequencial(FILE *arquivoBin, Campos *campos, Cabecalho *cab, ChavesBusca *chavesBusca, int numPares) {
-    Campos *encontrados;
+    // Marca registro como apagado no arquivo de dados:
+    fseek(arqBin, byteOffset, SEEK_SET);
+    fwrite(&campos->removido, sizeof(char), 1, arqBin);
+}
+
+// busca sequencial que retorna byteoffset
+long long int **busca_sequencial(FILE *arqBin, Campos *campos, Cabecalho *cab, ChavesBusca *chavesBusca, int numPares, int func, long long int **byteOffsets, int busca) {
     int i = 0;
     int numEncontrados = 0;
-
-    encontrados = aloca_campos();
-    aloca_campos_variaveis(encontrados, 0);
-
-    if(!registro_inexistente(arquivoBin, cab)) {
+    long long int bOffset = 17;
+    campos->numEncontrados = 0;
+    
+    // se registro existe
+    if(!registro_inexistente(arqBin, cab)) {
         while(i < cab->nroRegArq) {
             int igual = 1;
 
-            le_arquivo_bin(arquivoBin, campos);
+            int tamRegBytes = le_arquivo_bin(arqBin, campos);
 
-            trata_dados_bin(campos);
+            // trata casos nulos
+            trata_dados_binario_para_estrutura(campos);
 
+            // se campo nao foi removido
             if(campos->removido == '0') {
+                // se tipos = inteiro
                 for(int j = 0; j < numPares; j++) {
                     if(chavesBusca[j].tipo == 0) {
                         igual = compara_campos_int(campos, chavesBusca, j);
                     } else if(chavesBusca[j].tipo == 1) {
                         igual = compara_campos_str(campos, chavesBusca, j);
                     }
+
                     if(igual == 0) {
                         break;
                     }
@@ -309,46 +360,46 @@ void busca_sequencial(FILE *arquivoBin, Campos *campos, Cabecalho *cab, ChavesBu
                 igual = 0;
             }
             
-            if(igual == 1) {
+            if(igual == 1) {    // sao iguais
+                numEncontrados++;
+                campos->numEncontrados++;
+
+                // alocando byteoffset
                 if(numEncontrados > 0) {
-                    encontrados = (Campos *) realloc(encontrados, (numEncontrados + 1) * sizeof(Campos));
+                    byteOffsets[busca] = (long long int *) realloc(byteOffsets[busca], (numEncontrados+1) * sizeof(long long int));
                 }
 
-                // Salva o registro encontrado:
-                encontrados[numEncontrados].idCrime = campos->idCrime;
-                encontrados[numEncontrados].numeroArtigo = campos->numeroArtigo;
-                encontrados[numEncontrados].removido = campos->removido;
-                strcpy(encontrados[numEncontrados].dataCrime, campos->dataCrime);
-                encontrados[numEncontrados].lugarCrime = copia_campo_variavel(campos->lugarCrime);
-                encontrados[numEncontrados].descricaoCrime = copia_campo_variavel(campos->descricaoCrime);
-                strcpy(encontrados[numEncontrados].marcaCelular, campos->marcaCelular);
-                
-                numEncontrados++;
+                // Guarda o byteOffset do registro que encontrou:
+                byteOffsets[busca][numEncontrados-1] = bOffset;
+
+                // Caso de recuperação de registro para print:
+                if(func == 4) {
+                    print_de_arquivo_bin(campos);
+                } 
             }
             i++;
+            // atualiza o byteoffset
+            bOffset = bOffset + tamRegBytes;
         }
     } 
 
-    print_encontrados(numEncontrados, encontrados);
-    
-    for(int k = 0; k < numEncontrados; k++) {
-        free(encontrados[k].lugarCrime);
-        free(encontrados[k].descricaoCrime);
+    if(numEncontrados == 0) {
+        if(func == 4) {
+            erro_reg_inexistente();
+        }
     }
 
-    free(encontrados);
+    return byteOffsets;
 }
 
 
-void percorre_ind_iguais(IndexCampos *indCampos, ChavesBusca *chavBusca, int meio, int index, FILE *arqBin, Campos *campos, int numPares) {
-    Campos *encontrados;
+// percorre todos os indices iguais em ordem de byteOffset, realizando a busca:
+long long int **percorre_ind_iguais(IndexCampos *indCampos, ChavesBusca *chavBusca, int meio, int index, FILE *arqBin, Campos *campos, int numPares, int func, long long int **byteOffsets, int busca) {
     int primeiro = meio;
     int ultimo = meio;
     int igual = 1;
     int numEncontrados = 0;
-
-    encontrados = aloca_campos();
-    aloca_campos_variaveis(encontrados, 0);
+    campos->numEncontrados = 0;
 
     if(chavBusca[index].tipo == 0) {
         // Encontra o inicio dos indices iguais ao procurado:
@@ -374,10 +425,13 @@ void percorre_ind_iguais(IndexCampos *indCampos, ChavesBusca *chavBusca, int mei
     for(int i = primeiro; i <= ultimo; i++) {
         fseek(arqBin, indCampos[i].byteOffset, SEEK_SET);
 
-        le_arquivo_bin(arqBin, campos);
+        // le o registro:
+        int tamRegBytes = le_arquivo_bin(arqBin, campos);
 
-        trata_dados_bin(campos);
+        // Trata o registro com cifrao:
+        trata_dados_binario_para_estrutura(campos);
 
+        // Compara se todos os campos dele batem com a busca:
         for(int j = 0; j < numPares; j++) {
             if(j != index) {
                 if(chavBusca[j].tipo == 0) {
@@ -392,69 +446,77 @@ void percorre_ind_iguais(IndexCampos *indCampos, ChavesBusca *chavBusca, int mei
             }
         }
 
+        // registro encontrado:
         if(igual == 1) {
-            if(numEncontrados > 0) {
-                encontrados = (Campos *) realloc(encontrados, (numEncontrados + 1) * sizeof(Campos));
-            }
-            
-            // Salva o registro encontrado:
-            encontrados[numEncontrados].idCrime = campos->idCrime;
-            encontrados[numEncontrados].numeroArtigo = campos->numeroArtigo;
-            encontrados[numEncontrados].removido = campos->removido;
-            strcpy(encontrados[numEncontrados].dataCrime, campos->dataCrime);
-            encontrados[numEncontrados].lugarCrime = copia_campo_variavel(campos->lugarCrime);
-            encontrados[numEncontrados].descricaoCrime = copia_campo_variavel(campos->descricaoCrime);
-            strcpy(encontrados[numEncontrados].marcaCelular, campos->marcaCelular);
-            
             numEncontrados++;
+            campos->numEncontrados++;
+
+            if(numEncontrados > 0) {
+                byteOffsets[busca] = (long long int *) realloc(byteOffsets[busca], (numEncontrados+1) * sizeof(long long int));
+            }
+
+            // Guarda o byteOffset do registro encontrado:
+            byteOffsets[busca][numEncontrados-1] = indCampos[i].byteOffset;
+
+            if(func == 4) {                     // print de registro se for apenas busca
+                print_de_arquivo_bin(campos);
+            }
         }
     }
 
-    print_encontrados(numEncontrados, encontrados);
-
-    for(int k = 0; k < numEncontrados; k++) {
-        free(encontrados[k].lugarCrime);
-        free(encontrados[k].descricaoCrime);
+    if(numEncontrados == 0) {
+        if(func == 4) {
+            erro_reg_inexistente();
+        }
     }
 
-    free(encontrados);
+    return byteOffsets;
 }
 
 
-void busca_binaria(IndexCampos *indexCampos, int quantInd, ChavesBusca *chavesBusca, int index, FILE *arqBin, Campos *campos, int numPares) {
+// Realiza busca binaria pelo indice buscado:
+int busca_binaria(IndexCampos *indexCampos, int quantInd, ChavesBusca *chavesBusca, int index, Campos *campos, int func) {
     int esq = 0;
     int dir = quantInd - 1;
+    int meio;
     int encontrouIndice = 0;
 
-    if(chavesBusca[index].tipo == 0) {
+    if(chavesBusca[index].tipo == 0) {  // tipo 0 = inteiro
         while(esq <= dir) {
-            int meio = (esq + dir) / 2;
+            meio = (esq + dir) / 2;
 
+            // verificando chaveInt
             if(chavesBusca[index].chaveInt == indexCampos[meio].chaveInt) {
                 encontrouIndice = 1;
-                percorre_ind_iguais(indexCampos, chavesBusca, meio, index, arqBin, campos, numPares);
                 break;
             }
 
+            // se o meio for maior, o da direita se torna meio -1
             if(chavesBusca[index].chaveInt < indexCampos[meio].chaveInt) {
                 dir = meio - 1;
+            
+            // se o meio for menor, o da direita se torna meio +1
             } else if(chavesBusca[index].chaveInt > indexCampos[meio].chaveInt) {
                 esq = meio + 1;
             }
         }
-    } else if(chavesBusca[index].tipo == 1) {
+    } else if(chavesBusca[index].tipo == 1) {   // tipo 2 = str
         preenche_cifrao_chav_str(chavesBusca, index);
 
         while(esq <= dir) {
-            int meio = (esq + dir) / 2;
+            meio = (esq + dir) / 2;
+
+            // verificando meio
             if(strcmp(chavesBusca[index].chaveStr, indexCampos[meio].chaveStr) == 0) {
                 encontrouIndice = 1;
-                percorre_ind_iguais(indexCampos, chavesBusca, meio, index, arqBin, campos, numPares);
                 break;
             }
 
+            // verifica se menor, e atualiza dir
             if(strcmp(chavesBusca[index].chaveStr, indexCampos[meio].chaveStr) < 0) {
                 dir = meio - 1;
+
+            // verifica se maior, e atualiza esq
             } else if(strcmp(chavesBusca[index].chaveStr, indexCampos[meio].chaveStr) > 0) {
                 esq = meio + 1;
             }
@@ -462,7 +524,36 @@ void busca_binaria(IndexCampos *indexCampos, int quantInd, ChavesBusca *chavesBu
     }
 
     if(encontrouIndice == 0) {
-        erro_reg_inexistente();
+        if(func == 4) {
+            erro_reg_inexistente();
+        }
+        
+        meio = -1;
     }
 
+    return meio;
 }
+
+// Insere no fim do arquivo:
+void insere_arq_dados(FILE *arqBin, Campos *insercao, Cabecalho *cab) {
+    fseek(arqBin, cab->proxByteOffset, SEEK_SET);  // Pula para o ultimo byte.
+
+    escreve_arquivo_bin(arqBin, insercao, cab);
+}
+
+
+// Completa o registro escrito com cifrao, se a atualizacao for menor que o registro antigo:
+void completa_reg_cifrao(int tamRegAtual, int tamRegNovo, FILE *arqBin){
+    int quant_cifrao = tamRegAtual - tamRegNovo;
+
+    char cifrao = '$';
+    char hashtag = '#';
+
+    fseek(arqBin, -1, SEEK_CUR);
+
+    for(int i = 0; i < quant_cifrao; i++) {
+        fwrite(&cifrao, sizeof(char), 1, arqBin);
+    }
+
+    fwrite(&hashtag, sizeof(char), 1, arqBin);
+} 

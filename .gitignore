@@ -2,6 +2,7 @@ programaTrab
 programaTrab.o
 
 estrutura.o
+estrutura_index.o
 
 funcionalidades.o
 
@@ -13,3 +14,10 @@ indiceres.bin
 indice1.bin
 indice2.bin
 indice3.bin
+indice4.bin
+indice5.bin
+indice6.bin
+indice7.bin
+indice8.bin
+indice9.bin
+indice10.bin

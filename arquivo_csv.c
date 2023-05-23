@@ -45,12 +45,6 @@ int le_arquivo_csv(FILE *arquivo, Campos *dados){
     return leuRegistro;
 }
 
-// tratando dados para caso NULO e sobra de bytes
-void trata_dados_csv(Campos *dados){
-    dados->removido = '0';
-    strcpy(dados->dataCrime, "$$$$$$$$$$");
-    strcpy(dados->marcaCelular, "$$$$$$$$$$$$");
-}
 
 // leitura dos campos variaveis
 void le_campos_variaveis_csv(FILE *arquivo, Campos *dados, int opcao){
@@ -86,4 +80,12 @@ void le_campos_variaveis_csv(FILE *arquivo, Campos *dados, int opcao){
         dados->descricaoCrime[i] = '\0';       // atualizacao do ultimo char
         break;
     }
+}
+
+
+// tratando dados se for NULO e sobra de bytes (Preenche cifrao):
+void trata_dados_csv(Campos *dados) {
+    dados->removido = '0';
+    strcpy(dados->dataCrime, "$$$$$$$$$$");
+    strcpy(dados->marcaCelular, "$$$$$$$$$$$$");
 }
