@@ -14,7 +14,7 @@ void create_table();
 
 void select_from();
 
-void create_index();
+void create_index(int func);
 
 long long int **select_from_where(int func);
 
@@ -23,5 +23,7 @@ void delete_from_where();
 void insert_into();
 
 void update();
+
+void create_index_arvore_b();
 
 #endif

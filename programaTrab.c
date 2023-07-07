@@ -25,7 +25,7 @@ int main (){
             select_from();
             break;
         case 3:
-            create_index();
+            create_index(3);
             break;
         case 4:
             select_from_where(4);
@@ -38,6 +38,9 @@ int main (){
             break;
         case 7:
             update();
+            break;
+        case 8:
+            create_index(8);
             break;
         default:
             erro_processamento();

@@ -87,7 +87,7 @@ void select_from() {
 }
 
 // Escolha da terceira funcionalidade:
-void create_index() {
+void create_index(int func) {
     FILE *arquivoBin;
     char nomeArqBin[50];
     char campoIndexado[40];

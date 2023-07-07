@@ -10,6 +10,16 @@ struct indexCabecalho {
     int tipo;
 };
 
+// estrutura de cabecalho para indice arvore B estrela
+struct indCabArvB {
+    char status;
+    int noRaiz;
+    int RRNproxNo;
+    int nroNiveis;
+    int nroChaves;
+    char lixo[92];
+};
+
 // estrutura de campos para o arquivo de indices
 struct indexCampos {
     // union para guardar a chave de busca do arquivo de indices
@@ -22,8 +32,19 @@ struct indexCampos {
 };
 
 
+struct no {
+    int nivel;
+    int n;
+    int ponteiros[5];
+    int chaves[4];
+    long long int ref[4];
+};
+
+
 typedef struct indexCabecalho IndexCabecalho;
+typedef struct indCabArvB IndCabArvB;
 typedef struct indexCampos IndexCampos;
+typedef struct no No;
 
 
 IndexCampos *aloca_indice();
